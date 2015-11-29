@@ -1,0 +1,480 @@
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.3/react.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.3/JSXTransformer.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.26.1/react-bootstrap.min.js"></script>
+</script>
+   <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;  
+      }
+    </style>
+<script type="text/javascript">
+      var map;
+      var markers = [];
+      var sailsurl = "http://X.X.X.X:1337"; // SHOULD GET THIS FROM A CONFIG FILE
+    
+function initMap() {
+    
+  console.log("INIT MAP");    
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: {lat: -34.397, lng: 150.644},
+    mapTypeId: google.maps.MapTypeId.SATELLITE,  
+    zoom: 8
+  });
+
+  console.log("before pop");     
+    
+  PopulateMarkers();    
+    
+    
+}
+     
+function PopulateMarkers(){
+    
+    
+    var url = sailsurl + "/routepoints?idhikinglog=<%= hike %>";
+    
+    $.ajax({
+        type: "GET",
+        url: url
+    }).done(function(data) {
+        for(var i=0; i< data.length; i++){
+            
+        console.log("START Route point INFO");
+        console.log(data[i].idroutepoint);
+        console.log(data[i].latitude);
+        console.log(data[i].longitude);
+        console.log(data[i].altitude);
+        console.log(data[i].speed);
+        console.log(data[i].datetimecollected);
+        console.log(data[i].type);
+        console.log(data[i].idhikinglog);    
+        console.log("END Routepoint INFO");
+        
+        var rtpoint = {lat:data[i].latitude , lng:data[i].longitude};    
+            
+        addMarker(rtpoint,data[i].type,data[i].altitude,data[i].speed);    
+        }
+    });
+    
+}     
+     
+     
+function addMarker(location,type,altitude,speed) {
+  var tempType, tmpIcon;
+    
+  console.log("Add Markers");       
+  if (type == "START_LOCATION"){
+      tempType = "S";
+      tmptext = "Start point";
+      tmpIcon = "http://maps.google.com/mapfiles/ms/icons/blue-dot.png";
+  }else if (type == "ROUTE_LOCATION"){
+      tempType = "R";
+      tmpIcon = "http://maps.google.com/mapfiles/ms/icons/green-dot.png";
+      tmptext = "Route point";
+  }else if (type == "FINISH_LOCATION"){
+      tempType = "F";
+      tmptext = "Finish point";
+      tmpIcon = "http://maps.google.com/mapfiles/ms/icons/red-dot.png";
+  }    
+
+  var tmpText = "<b>" + tmptext + "</b>" + " " + location.lat + "," + location.lng + "</br>" + "<b>" + "Altitude (feet): " + "</b>" + altitude + "</br>" + "<b>" + "Speed (miles/hour): " + "</b>" + speed;    
+    
+  var infowindow = new google.maps.InfoWindow({
+     content: tmpText
+  });    
+    
+  var marker = new google.maps.Marker({
+    position: location,
+    map: map  
+  });
+       
+  marker.setIcon(tmpIcon);    
+  markers.push(marker);
+  map.setCenter(location);   // recenter map     
+  map.setZoom(map.getZoom() + 1);  
+    
+  console.log("Finisk Add marker");    
+    
+  // FOR TOOL TIPS    
+  google.maps.event.addListener(marker, 'click', function() {
+      infowindow.open(map,marker);
+    });    
+}
+     
+</script>
+
+<script type="text/jsx">
+
+    
+var hikeId = "<%= hike %>";
+var e = "<%= email %>";
+var stTime = "";
+var collectionInterval = "";
+
+console.log(hikeId);
+console.log(e);
+
+
+const title = (
+    <h3>Route Information</h3>
+);
+
+const weathertitle = (
+    <h3>Weather Information</h3>
+);
+
+const Notetitle = (
+    <h3>Notes</h3>
+);
+
+const Phototitle = (
+    <h3>Photos</h3>
+);
+
+
+var Input = ReactBootstrap.Input;
+var form = ReactBootstrap.Form;
+var Panel = ReactBootstrap.Panel;
+var Table = ReactBootstrap.Table;
+var Tabs = ReactBootstrap.Tabs;
+var Tab =  ReactBootstrap.Tab;
+var Grid = ReactBootstrap.Grid;
+var Row = ReactBootstrap.Row;
+var Thumbnail = ReactBootstrap.Thumbnail;
+var Col = ReactBootstrap.Col;
+
+var RouteInfoComponent = React.createClass({
+
+    getInitialState: function(){
+        return{
+            title: '',
+            starttime: '',
+            finishtime: '',
+            collectioninterval: '',
+            notes: ''
+        };
+    },    
+
+    componentDidMount: function(){
+        console.log("componentDidmount");
+        
+        $.ajax({
+        type: "GET",
+        url:  sailsurl + "/hikelog?idhikinglog=<%= hike %>"
+        }).done(function(data) {
+        
+            console.log("START HIKE INFO");
+            console.log(data[0].title);
+            console.log(data[0].idhikinglog);
+            console.log(data[0].iduserprofile);
+            console.log(data[0].starttime);
+            console.log(data[0].finishtime);
+            console.log(data[0].datecreated);
+            console.log(data[0].collectioninterval);
+            console.log(data[0].notes);   
+            console.log("END HIKE INFO");
+            
+            this.setState({
+                title:data[0].title,
+                starttime:data[0].starttime,
+                finishtime:data[0].finishtime,
+                collectioninterval:data[0].collectioninterval,
+            });
+            
+            
+        }.bind(this));
+    
+    },
+
+
+    render: function(){
+        return(
+             <Panel header={title}>
+             <form>
+               <Input type="text" label="Start Time" placeholder="Time" value={this.state.starttime} readOnly="true"/>
+               <Input type="text" label="Finish Time" placeholder="Time" value={this.state.finishtime} readOnly="true"/>
+               <Input type="text" label="Collection interval" placeholder="Time" value={this.state.collectioninterval} readOnly="true"/>
+             </form>  
+             </Panel>
+        );
+    }
+
+});
+
+var TableRow = React.createClass({
+    render: function(){
+        
+           var type = this.props.weatherreading.type; 
+            var temperature = this.props.weatherreading.temperature;
+            var humidity = this.props.weatherreading.humidity;
+            var barometricpressure = this.props.weatherreading.barometricpressure;
+            var description = this.props.weatherreading.description;
+           var windspeed = this.props.weatherreading.windspeed;
+            var datetimecollected = this.props.weatherreading.datetimecollected;
+          var winddirection = this.props.weatherreading.winddirection;
+        
+        return(
+            <tr>
+                <td>{datetimecollected}</td>
+                <td>{type}</td>
+                <td>{description}</td>
+                <td>{temperature}</td>
+                <td>{humidity}</td>
+                <td>{barometricpressure}</td>
+                <td>{windspeed}</td>
+                <td>{winddirection}</td>
+            </tr>    
+        );
+    }
+});
+
+
+var WeatherTable = React.createClass({
+
+ getInitialState: function(){
+        return{
+            weathercollection:[]
+        };
+    },    
+
+    componentDidMount: function(){
+
+        $.ajax({
+        type: "GET",
+        url: sailsurl + "/weatherreading?idhikinglog=<%= hike %>"
+        }).done(function(data) {
+                    
+            this.setState({
+                weathercollection:data
+            });
+            
+            
+        }.bind(this));
+    
+    },
+
+  // http://stackoverflow.com/questions/29534224/react-jsx-iterating-thought-an-hash-and-returning-jsx-elements-for-each-key
+
+  // TABLE CREATION - https://facebook.github.io/react/docs/thinking-in-react.html
+
+    render: function(){
+        var rows = [];
+        this.state.weathercollection.forEach(function(weatherreading){
+                  //console.log(weatherreading.type); 
+                  //console.log(weatherreading.temperature);
+                  //console.log(weatherreading.humidity);
+                  //console.log(weatherreading.barometricpressure);
+                  //console.log(weatherreading.description);
+                  //console.log(weatherreading.windspeed);
+                  //console.log(weatherreading.datetimecollected);
+                  //console.log(weatherreading.winddirection);
+                  rows.push(<TableRow weatherreading={weatherreading}/>);
+                  
+        });
+        return(
+             <Panel header={weathertitle}>
+             <Table striped bordered condensed hover>
+                    <thead>
+                    <tr>
+                        <th>Datetime Collected </th>
+                        <th>Type </th>
+                        <th>Description </th>
+                        <th>Temperature (Fahrenheit)</th>
+                        <th>Humidity (%)</th>
+                        <th>Barometric pressure (hPa)</th>
+                        <th>Windspeed (Miles/Per Hour)</th>
+                        <th>Winddirection (Degrees)</th>
+                    </tr>
+                    </thead>
+                    <tbody>{rows}</tbody>
+             </Table>
+             </Panel>
+        );
+    }
+
+});
+
+
+var PhotoItem = React.createClass({
+    render: function(){
+          var description = this.props.photo.description;
+          var tags = this.props.photo.tags;
+          var uploadpath = "/" + this.props.photo.uploadpath;
+          var key = this.props.photo.id;
+          var latitude = this.props.photo.latitude;
+          var longitude = this.props.photo.longitude;
+          
+          return(
+            <Col xs={6} md={4}>
+                <Thumbnail id={key} src={uploadpath} alt="242x200">
+                <h4>Description: {description}</h4>
+                <h4>Tags: {tags}</h4>
+                <h4>Location Taken: {latitude} , {longitude}</h4>
+                </Thumbnail>
+            </Col>
+         );
+    }
+});
+
+// PHOTOS NOT DISPLAYED
+
+var PhotoInfoTable = React.createClass({
+
+    getInitialState: function(){
+        return{
+            photocollection:[]
+        };
+    },    
+
+ 
+
+    componentDidMount: function(){
+
+        $.ajax({
+        type: "GET",
+        url: sailsurl + "/photo?idhikinglog=<%= hike %>"
+        }).done(function(data) {
+                    
+            this.setState({
+                photocollection:data
+            });
+            
+            
+        }.bind(this));
+    
+    },
+    
+    
+      render: function(){
+        var rows = [];
+        var i = 0;
+        this.state.photocollection.forEach(function(photo){
+                  console.log(photo.latitude); 
+                  console.log(photo.longitude);
+                  console.log(photo.description);
+                  console.log(photo.tags);
+                  console.log(photo.uploadpath);
+                  photo.id = i;
+                  rows.push(<PhotoItem photo={photo}/>);    
+                  i++;
+        });
+        return(
+             <Panel header={Phototitle}>
+             <Grid>
+                <Row>{rows}</Row>
+             </Grid>
+             </Panel>
+        );
+    }
+    
+
+});
+
+
+var NotesComponent = React.createClass({
+   
+   getInitialState: function(){
+        return{
+            notes: ''
+        };
+    },    
+
+    componentDidMount: function(){
+        console.log("componentDidmount");
+        
+        $.ajax({
+        type: "GET",
+        url: sailsurl + "/hikelog?idhikinglog=<%= hike %>"
+        }).done(function(data) {
+    
+            console.log(data[0].notes);   
+          
+            this.setState({
+                notes:data[0].notes
+            });
+            
+            
+        }.bind(this));
+    
+    },
+
+
+    render: function(){
+        return(
+             <Panel header={Notetitle}>
+             <form>
+               <Input type="textarea" placeholder="Notes go here" value={this.state.notes} readOnly="true"/>
+             </form>  
+             </Panel>
+        );
+    }
+
+});
+
+
+var MapComponent = React.createClass({
+   
+    componentDidMount: function(){
+        //initMap();
+    },
+
+    render: function(){
+        return(
+             <form>
+                <div id="map" style={{"height":"40%","width":"40%"}}/>
+             </form>  
+        );
+    }
+
+});
+
+
+var PageHeader = ReactBootstrap.PageHeader;
+var PageHeaderComponent = React.createClass({
+ 
+    render: function(){
+       return(
+        <PageHeader>&nbsp;Welcome to Hike Log <%= email %> !</PageHeader>
+       );
+    }
+});
+
+
+
+
+React.render(
+ <div>  
+ <PageHeaderComponent/>
+ <Tabs defaultActiveKey={1} position="left" tabWidth={3}>
+    <Tab eventKey={1} title="Route Information">
+        <RouteInfoComponent/>
+    </Tab>
+ <Tab eventKey={3} title="Weather">
+    <WeatherTable/>
+ </Tab>
+ <Tab eventKey={4} title="Notes">
+    <NotesComponent/>   
+ </Tab>
+ <Tab eventKey={5} title="Photos">
+    <PhotoInfoTable/>
+ </Tab>
+ </Tabs>
+ </div>
+,document.getElementById('maintab'))
+
+
+</script>     
+
+<div id="maintab"></div>
+<p/>
+<div id="map" style="position:relative;height:60%;width:80%;margin:0 auto;"></div>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAnhxACD6pCA7HbVtOOQIAxlT3kTX993b4&callback=initMap" async defer></script>
+
+
